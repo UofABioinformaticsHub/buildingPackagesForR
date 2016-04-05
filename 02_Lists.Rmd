@@ -1,0 +1,235 @@
+---
+title: "Building an R Package"
+subtitle: "Lists and Data Frames"
+author: |
+  | Steve Pederson
+  | Bioinformatics Hub
+  | University of Adelaide
+date: "5 April 2016"
+output: ioslides_presentation
+---
+
+## Lists
+
+A `list` is a *heterogeneous* vector.
+
+- Each component is an `R` object type
+- Can be a `vector`, or `matrix`
+- Could be another `list`
+- Any other `R` object type we haven't seen yet
+
+```{r, echo=FALSE, include=TRUE, results='hide'}
+logi_vec <- c(TRUE, TRUE, FALSE)
+int_vec <- 1:5
+dbl_vec <- c(0.618, 1.414, 2)
+```
+
+## Lists
+
+Many `R` functions provide output as a list
+
+```{r, results='hide'}
+testResults <- t.test(dbl_vec)
+typeof(testResults)
+```
+
+## Lists
+
+Explore the various attributes of the object `testResults`
+
+- `attributes()`; `length()`; `names()`
+
+We can also call the individual components of `testResults` using the `$` symbol
+
+- `testResults$statistic`; `testResults$conf.int`; `testResults$method`
+
+Note that each component is quite different to the others.
+
+*Use the function* `typeof()` *on some of the components above*
+
+## Subsetting Lists
+
+A `list` is a `vector` so we can also subset using the `[]` method
+
+```{r, results='hide'}
+testResults[1]
+```
+
+Double brackets can retrieve a single element
+
+```{r, results='hide'}
+testResults[[1]]
+```
+
+## Subsetting Lists
+
+Using single square brackets returns a `list` with the structure intact
+
+```{r}
+typeof(testResults[1])
+```
+
+Using double square brackets returns the actual component as a distinct `R` object
+
+```{r}
+typeof(testResults[[1]])
+```
+
+*When would we use either method?*
+
+## Lists
+
+- Note also the **Environment** Tab in the top right of RStudio
+- Click the arrow next to `testResults` to expand the entry
+- This is the output of `str(testResults)`
+
+## Data Frames
+
+Finally!
+
+- These are the *most common type of data* you will see
+- Each column is a vector
+- Columns can be different types of vectors
+
+## Data Frames
+
+- Analogous to matrices, but are specifically for *heterogeneous* data
+- Have many of the same attributes as matrices
+    + `dim()`, `nrow()`, `ncol()`, `rownames()`, `colnames()`
+- `colnames()` & `rownames()` are **NOT** optional & are assigned by default
+
+## Data Frames
+
+Here's an example `data.frame` from the package *datasets*
+
+Use `?ToothGrowth` to find out what's in the object
+
+```{r}
+head(ToothGrowth)
+```
+
+## Data Frames
+
+Try these commands
+
+```{r, results='hide'}
+colnames(ToothGrowth)
+dim(ToothGrowth)
+nrow(ToothGrowth)
+```
+
+## Data Frames
+
+Individual entries can also be extracted using the square brackets, as for matrices
+
+```{r}
+ToothGrowth[1:2, 1]
+```
+
+We can also refer to columns by name
+
+```{r}
+ToothGrowth[1:2, "len"]
+```
+
+
+## Data Frames
+
+The concept of columns being distinct vectors is quite important & useful
+
+- We can call each column vector of a `data.frame` using the `$` operator
+
+```{r} 
+ToothGrowth$len[1:2]
+```
+
+**This does NOT work for rows!!!**
+
+## Data Frames
+
+- `R` is *column major* by default (as is `FORTRAN` & Mat lab)
+- Many other languages are *row major*, e.g. C/C++, Python
+- `R` was designed for statistical analysis, but has developed capabilities **far beyond this**
+
+
+## Data Frames & Lists
+
+**Data frames are actually special cases of lists**
+
+- Each column of a `data.frame` is a component of a `list`
+- The components must all be vectors of the same length
+- Lists and Data Frames behave identically, particularly when subsetting
+
+## Data Frames & Lists
+
+Forgetting the comma, now gives a completely different result to a matrix!
+
+```{r, eval=FALSE}
+ToothGrowth[1]
+```
+
+*Was that what you expected?*
+
+Try using the double bracket method
+
+
+## Creating `R` Objects
+
+### Vectors
+
+We've created many vectors already
+
+- The important step is the `<-` symbol (or `->`)
+
+### How do we assign names?
+
+```{r}
+named_vec <- c(a=1, b=2, c=3)
+```
+
+OR we can name an existing vector
+
+```{r}
+named_vec <- int_vec
+names(named_vec) <- c("a", "b", "c", "d", "e")
+```
+
+## Creating `R` Objects
+
+*Can we remove names?*
+
+The `NULL`, or empty, vector in `R` is created using `c()`
+
+```{r, results='hide'}
+null_vec <- c()
+length(null_vec)
+```
+
+We can use this to remove names
+
+```{r}
+names(named_vec) <- c()
+```
+
+*Don't forget to put the names back...*
+
+## Creating `R` Objects
+
+### Data Frames
+This is exactly the same as creating lists, but
+
+- The `names` attribute will also be the `colnames()`
+
+```{r}
+my_df <- data.frame(doubles = dbl_vec, logical = logi_vec)
+names(my_df) == colnames(my_df)
+```
+
+## Creating `R` Objects
+
+### Data Frames
+*What happens if we try to add components that aren't the same length?*
+
+`my_df` `<- data.frame(integers = int_vec,` 
+                    `doubles = dbl_vec, logical = logi_vec)`
+                    

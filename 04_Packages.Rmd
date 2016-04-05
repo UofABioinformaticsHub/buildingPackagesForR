@@ -1,0 +1,257 @@
+---
+title: "Building an R Package"
+subtitle: "Package Building"
+author: |
+  | Steve Pederson
+  | Bioinformatics Hub
+  | University of Adelaide
+date: "5 April 2016"
+output: ioslides_presentation
+---
+
+## Building a package
+
+- We'll do this using a `R project`
+- Also upload the project to `github`
+
+## Building a package
+
+- `File > New Project... > New Directory > R Package`
+- Call the package `mySnps` in an appropriate folder
+- Tick the `Create a git repository` check box
+
+*This will automatically create a generic directory structure*
+
+## Building a package
+
+- `Tools > Project Options`
+- `Build Tools`
+- Check the `Generate documentation with Roxygen`
+- Also check `Build & Reload` with the `Configuration` window pops up
+
+## Why build a package
+
+- Doesn't have to be for public consumption
+- Keep functions for a specific project in one easy-to-share place (i.e. [github.com](http://www.github.com))
+- Encourages you to document your functions correctly for "Future You"
+
+## Today's package
+
+- We have a set of 2000 bi-allelic SNPs and we need to:
+    + Create some Allele/Genotype Frequency Tables
+    + Compare our Populations
+    
+- The SNPs are recorded as AA/AB/BB.
+- Two populations: `Control` & `Treat`
+    
+## Today's Data
+
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+library(readr)
+```
+
+```{r}
+snps <- read_csv("snps.csv")
+```
+
+
+## Today's Data
+
+```{r}
+snps[1:5]
+```
+
+## Initialising the Git Repository
+
+- Head to the `Git` Tab in the top right
+- Everything will have question marks
+- The files we want to track are:
+    + `DESCRIPTION`, `NAMESPACE`
+    + Everything in the `R/` directory
+    + Everything in the `man/` directory
+    + The file `.gitignore`
+- Click the `Staged` check box for all these
+
+## Initialising the Git Repository
+
+- Right-click `mySnps.Rproj` then select `Ignore`
+- The file `.gitignore` will open with `mySnps.Rproj` added
+- Also add `Rbuildignore` then save
+
+- The ignored files will now disappear
+- The Status box will also have changed for `.gitignore`
+- Stage `.gitignore`
+
+## Initialising the Git Repository
+
+- Hit `Commit` and enter the message "Initial Commit" in the message box
+- Now complete the commit
+- We have now saved our initial setup
+- Every time we change a file, it will re-appear in the Git tab
+
+## Package Setup
+First, we should edit the `DESCRIPTION` file
+
+- Put something relevant in the `Title` field, e.g. "Analyse bi-allelic SNP data
+- Put your email address as the `Maintainer`
+- Add something in the `Description Field`, e.g. This is really just a test package...
+- Save & close
+
+*Note that it will have changed in the Git tab*
+
+## Our First Function
+
+- Let's write a function that: 
+    + outputs genotypes as a table
+    + gives allele frequencies 
+    + we'll write it for a single SNP
+    
+*What information/objects will the function need*
+
+## Our First Function
+
+*What information/objects will the function need*
+
+- Population Information
+- SNP Information
+
+```{r, eval=FALSE}
+getSnpInfo <- function(snp, pop){
+  
+}
+```
+
+## Our First Function
+
+Let's write this correctly:
+
+- `File > New File > R Script`
+- **Save this as `getSnpInfo.R` in the `R/` directory**
+
+## Our First Function
+
+`#' Collect the genotype and allele frequency for a given SNP`  
+`#'`  
+`#' @param snp A vector of SNPs in AA/AB/BB format`  
+`#' @param pop A vector describing the population structure of the SNPs`  
+`#' @export`  
+`getSnpInfo<- function(snp, pop){ `  
+`}`  
+
+- Now go to the `Build Tab`
+- `Build & Reload`
+
+## Our First Function
+
+- By entering `#' @export` we have exported this function in the `namespace` of the package `mySnps`
+- We have also created a help page for our function
+
+```{r, eval=FALSE}
+?getSnpInfo
+```
+
+- This took minimal effort and will be super helpful for "Future You"
+
+## Our First Function
+
+```{r}
+getSnpInfo<- function(snp, pop = NULL){
+  if (is.null(pop)) {
+    genotypes <- table(snp)
+  }
+  else {
+    stopifnot(length(pop) == length(snp))
+    genotypes <- table(pop, snp)
+  }
+  genotypes
+}
+```
+
+## Our First Function
+
+Let's use some toy data to check the function
+
+```{r}
+snps <- rep(c("AA", "AB", "BB"), times = c(5, 7, 9))
+pop <- sample(c("Treat", "Control"), 21, TRUE)
+getSnpInfo(snps)
+getSnpInfo(snps, pop)
+```
+
+## We can make this an example in our help page
+
+Place the following after the last ` #' @param` line
+
+` #' @examples`  
+` #' snps <- rep(c("AA", "AB", "BB"), times = c(5, 7, 9))`  
+` #' pop <- sample(c("Treat", "Control"), 21, TRUE)`  
+` #' getSnpInfo(snps)`  
+` #' getSnpInfo(snps, pop)` 
+
+Now rebuild the package & check the help page
+
+## Now let's get the allele frequencies
+
+```{r}
+getSnpInfo<- function(snp, pop = NULL){
+  
+  if (is.null(pop)) {
+    genotypes <- table(snp)
+    freqs <- (genotypes[1] + 0.5*genotypes[2]) / sum(genotypes)
+  }
+  else {
+    stopifnot(length(pop) == length(snp))
+    genotypes <- table(pop, snp)
+    freqs <- apply(genotypes, 1, 
+                   function(x){ (x[1] + 0.5*x[2]) / sum(x) })
+  }
+  
+  list(genotypes = genotypes, alleleFreqs = freqs)
+}
+```
+
+## Now let's get the allele frequencies
+
+- We don't need to change our help page
+- Let's just run the examples
+
+## Define the returned values in the help page
+
+` #' @return A list with components \code{genotypes} and \code{alleleFreqs}, which contain a breakdown of observed genotypes and allele frequencies for each population.`  
+
+(Enter whatever you'd like here)
+
+- Rebuild
+
+## Commit 
+
+- We should commit this as we know it works
+- Stage everything by clicking on the check-boxes
+- Commit & add the message "Added getSnpInfo function"
+
+## Push to github
+
+- Go to your github account & create a new repository called `mySnps`
+- Make sure you don't add a README or any other files
+
+`git remote add origin git@github.com:steveped/mySnps.git`  
+`git push -u origin master`  
+
+- We now have package on github that can be installed using
+
+```{r, eval=FALSE}
+library(devtools)
+install_github("steveped/mySnps")
+```
+
+## Finally
+
+- Create a function to run a Fisher test on the genotypes table
+
+- The output should be a data.frame for each SNP, e.g.  
+`##   SNP   Control   Treat     p.value`  
+`## 1 SNP1  0.5283019 0.3645833 0.02551551`  
+
+- How would we run this on all 2000 of our SNPs?
+

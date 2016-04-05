@@ -1,0 +1,385 @@
+---
+title: "Building an R Package"
+subtitle: "Introduction"
+author: |
+  | Steve Pederson
+  | Bioinformatics Hub
+  | University of Adelaide
+date: "5 April 2016"
+output: ioslides_presentation
+---
+
+## Introduction
+
+Today's outline:
+
+- Data Structures in R
+- Writing Functions in R
+- Documenting Functions in a Package
+- Exporting To GitHub
+
+## Required Packages
+
+```{r, eval = FALSE}
+install.packages(c("roxygen2", "devtools", "knitr", 
+                   "dplyr", "magrittr"))
+```
+
+- Much of today's material is from *Advanced R* by Hadley Wickham, Chief Scientist at RStudio
+    - The online version  is freely available at [http://adv-r.had.co.nz/](http://adv-r.had.co.nz/)
+
+- Knowledge of R Studio is assumed  
+- We will use an `R project` for today's session  
+
+## R Project Setup
+
+1. `File > New Project ...` 
+2. `New Directory > Empty Project`  
+3. Choose somewhere and call the project something relevant:
+    + e.g. PackageBuilding  
+
+## A file for taking notes
+
+Open a new R Markdown File for taking notes  
+
+1. `File > New File > R Markdown...`
+    - Enter `Notes from Package Building` as the title
+    - Leave it as an HTML output
+    - Call it "notes.Rmd"
+2. Delete everything except the YAML header (between the dashed lines)
+
+## Using R Markdown
+
+- We'll use this for taking notes  
+- Plain text comes out as plain text
+- To create a code chunk enter `Ctrl + Alt + I`
+- Code in a chunk can be run using `Ctrl + Alt + C`
+
+- **We can describe something, then put the code in a chunk**
+    - Hitting the `Knit HTML` button at the top compiles a nice HTML document
+    - Can also select `.pdf` & `.docx` for output
+    - The Markdown Quick Reference Guide is opened using the `?` symbol at the top of the Source Editor
+
+## Data in R
+
+- Most commonly we use `data.frame` objects
+
+- Underlying these are the key building blocks
+
+- **Everything in R is a vector.**
+
+- 4 `atomic` types:
+    - `logical`, `integer`, `double`, `character`
+    
+- **Every component of an atomic vector is of the same data type!**
+
+## Vectors
+
+A simple vector could be
+```{r}
+1:10
+```
+
+All vectors have a `length()` attribute, but **no other** dimensions.
+
+
+## Working with Vectors
+
+We can *combine* two vectors in *R*, using the function `c()`
+
+```{r}
+c(1, 2)
+```
+
+- The numbers `1` & `2` were both vectors of `length` 1
+
+- We have combined two vectors of `length` 1, to make a vector of `length` 2
+
+
+## The 4 Atomic Vector Types
+
+1. **logical**
+
+```{r}
+logi_vec <- c(TRUE, TRUE, FALSE)
+print(logi_vec)
+```
+
+*Can only hold the values* `TRUE` *or* `FALSE`
+
+## The 4 Atomic Vector Types
+
+1. logical
+2. **integer**
+
+```{r}
+int_vec <- 1:5
+print(int_vec)
+```
+
+*Useful for counts, ranks or indexing positions, e.g. column 3, nucleotide 254731*
+
+## The 4 Atomic Vector Types
+
+1. logical
+2. integer
+3. **double**
+
+```{r}
+dbl_vec <- c(0.618, 1.414, 2)
+print(dbl_vec)
+```
+
+*Often (& __lazily__) referred to as numeric*
+
+## The 4 Atomic Vector Types
+
+1. integer
+2. logical
+3. double
+4. **character**
+
+```{r, include=TRUE, results='markup'}
+char_vec <- c("blue", "red", "green")
+print(char_vec)
+```
+
+*Holds text strings*
+
+## The 4 Atomic Vector Types
+
+These are the basic building blocks for all *R* objects
+
+1. logical
+2. integer
+3. double
+4. character
+
+There are two more rare types we'll ignore: `complex` & `raw`
+
+Many other vector types built on these `atomic` vectors
+
+## Properties of a vector
+
+What defining properties might a vector have?
+
+There are four...
+
+## Properties of a vector
+
+What defining properties might a **vector** have?
+
+1. The actual *values*
+2. *Length*, accessed by the function `length()`
+3. The *type*, accessed by the function `typeof()`
+    + Similar but preferable to `class()`
+4. Any optional & additional *attributes* such as names, etc.; `attributes()`
+
+## Properties of a vector
+
+Let's try them on our vectors
+
+```{r, results='hide'}
+typeof(char_vec)
+length(int_vec)
+attributes(logi_vec)
+class(dbl_vec)
+typeof(dbl_vec)
+```
+
+*Were you surprised by the results?*
+
+## Working with Vectors
+
+**What would happen if we combined two vectors of different types?**
+
+Let's try & see what happens:
+
+```{r, results='hide'}
+new_vec <- c(logi_vec, int_vec)
+print(new_vec)
+typeof(new_vec)
+```
+
+*What happened to the `logical` values?*
+
+## Working with Vectors
+
+**What would happen if we combined two vectors of different types?**
+
+Let's try & see what happens:
+
+```{r, results='hide'}
+new_vec <- c(logi_vec, int_vec)
+print(new_vec)
+typeof(new_vec)
+```
+
+*What happened to the* `logical` *values?*
+
+- `R` will **coerce** them into a common type.
+
+## Coersion
+
+### Discussion Questions
+1. What other types could logical vectors be coerced into?
+2. Can character vectors be coerced into numeric vectors?
+3. Can numeric vectors be coerced into logical vectors?
+
+Try using the functions: 
+`as.integer()`, `as.logical()`, `as.double()` & `as.character()`
+
+## Coersion
+
+```{r}
+simp_vec <- c(742, "Evergreen", "Terrace")
+simp_vec <- as.numeric(simp_vec)
+```
+
+## Subsetting Vectors
+
+The elements of a vector can be called using `[]`
+
+```{r}
+y <- c("A", "B", "C", "D", "E")
+y[2]
+y[c(1, 3)]
+```
+
+## Subsetting Vectors
+
+Double brackets (`[[]]`) can be used to return single elements only
+
+```{r, eval =1}
+y[[2]]
+```
+
+If you tried `y[[c(1,3)]]` you would receive an error message
+
+## Subsetting Vectors
+
+If a vector has name attributes, we can call values by name
+
+```{r}
+euro[1:5]
+names(euro)[1:2]
+euro[c("ATS", "BEF")]
+```
+
+## Subsetting Vectors
+
+*Try repeating the* call-by-name *approach using double brackets*
+
+```{r, results='hide'}
+euro["ATS"]
+euro[["ATS"]]
+```
+
+**What was the difference in the output?**
+
+1. Using `[]` returned the vector with the identical structure
+2. Using `[[]]` removed the `attributes` & just gave the value
+
+## Vector Operations
+
+`R` Functions are designed to work on vectors
+
+```{r, results='hide'}
+dbl_vec - 1
+dbl_vec > 1
+dbl_vec^2
+mean(dbl_vec)
+sd(dbl_vec)
+sqrt(int_vec)
+```
+
+This is one of the real strengths of `R`
+
+## Vector Operations
+
+We can combine the above logical test and subsetting
+
+```{r}
+dbl_vec[dbl_vec > 1]
+```
+
+This gives a further useful way of subsetting any vector
+
+## Vector Operations
+
+An additional logical test is `%in%`
+
+- This can be read as *is in*
+
+```{r}
+dbl_vec %in% int_vec
+```
+
+Returns a `TRUE/FALSE` value based on whether each value in `dbl_vec` **is in** `int_vec`
+
+NB: For this comparison `int_vec` would have been coerced silently to a `double` vector
+
+## Matrices
+
+Vectors are strictly one dimensional and have a `length` attribute.
+
+A `matrix` is the two dimensional equivalent
+
+```{r}
+int_mat <- matrix(1:6, ncol=2)
+print(int_mat)
+```
+
+## Matrices
+
+- Matrices can only hold **one** type of value 
+    + i.e. logical, integer, double, character
+- Each row or column is essentially a vector
+- Have additional attributes such as `dim()`, `nrow()` `ncol()`
+- Optionally can have `rownames()` & `colnames()`
+
+*What would you expect `length()` to return for a matrix?*
+
+## Matrices
+
+- We use square brackets to extract individual entries by row & column
+- The form is `x[row, col]` where the comma divides the rows from columns
+
+```{r, results='hide'}
+int_mat[2, 2]
+int_mat[1,]
+```
+
+*How would we just get the first column?*
+
+## Matrices
+
+**NB: Forgetting the comma when subsetting will treat the matrix as a single vector broken into columns**
+
+```{r}
+int_mat
+int_mat[5]
+```
+
+*What would happen if we'd added a comma before or after* `5`*?*
+
+## Arrays
+
+Arrays extend matrices to 3 or more dimensions
+
+Beyond the scope of today, but we just have more commas in the square brackets, e.g.
+```{r}
+dim(iris3)
+```
+
+Vectors, Matrices & Arrays are the basic *homogeneous* data types of `R`
+
+## Heterogeneous Data types
+
+Summary of main data types in *R*
+
+Dimension   | Homogeneous | Heterogeneous
+------------|-------------|--------------
+1d          | `vector`    | `list`       
+2d          | `matrix`    | `data.frame`
+3d+         | `array`     |

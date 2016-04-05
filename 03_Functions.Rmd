@@ -1,0 +1,253 @@
+---
+title: "Building an R Package"
+subtitle: "Writing Functions"
+author: |
+  | Steve Pederson
+  | Bioinformatics Hub
+  | University of Adelaide
+date: "5 April 2016"
+output: ioslides_presentation
+---
+
+```{r, echo=FALSE, include=TRUE, results='hide'}
+logi_vec <- c(TRUE, TRUE, FALSE)
+int_vec <- 1:5
+dbl_vec <- c(0.618, 1.414, 2)
+```
+
+
+## The basics
+
+```{r, eval = FALSE}
+myMean <- function(x){
+  stopifnot(is.numeric(x))
+  mn <- sum(x)/length(x)
+  mn
+}
+```
+
+- In the above, we have defined the function `name`
+- We have specified the `formals()`
+- Also known as the arguments, accessed via `args()`
+- Then we have the `body()`
+
+*The last operation in the body of the function is what is returned*  
+*We could also have used* `return(mn)`
+
+## The basics
+
+```{r}
+myMean <- function(x){
+  stopifnot(is.numeric(x))
+  mn <- sum(x)/length(x)
+  mn
+}
+```
+
+- Whatever we pass to the function becomes internally renamed `x`
+
+```{r, results='hide'}
+int_vec <- 1:10
+myMean(int_vec) # [1] 5.5
+myMean(x = int_vec) # [1] 5.5
+```
+
+- If we pass arguments in order, we don't need to name them.
+- It can be helpful when reading back your code though
+
+
+## The ellpsis
+
+```{r, eval = FALSE}
+myMean <- function(x, ...){
+  stopifnot(is.numeric(x))
+  mn <- sum(x, ...)/length(x)
+  mn
+}
+```
+
+- Initially, we defined only one argument: `x`
+- We can add the ellipsis (`...`) to a function as well.
+- This allows us to pass down any further, undefined arguments to functions we call
+- It initialises as `c()` or `NULL`
+
+## The ellpsis
+
+```{r}
+myMean <- function(x, ...){
+  stopifnot(is.numeric(x))
+  mn <- sum(x, ...)/length(x)
+  mn
+}
+```
+
+- Look at the help page using `?sum`
+- Here we can see the additional argument `na.rm = FALSE`
+
+```{r, results='hide'}
+na_vec <- c(int_vec, NA)
+myMean(na_vec) # [1] NA
+myMean(na_vec, na.rm = TRUE) # [1] 5
+```
+
+*Is that the correct answer?*
+
+## A better solution
+
+```{r}
+myMean <- function(x, na.rm = FALSE){
+  stopifnot(is.numeric(x))
+  if (na.rm) x <- x[!is.na(x)]
+  sum(x) / length(x)
+}
+```
+
+This will now work correctly
+
+```{r, results='hide'}
+myMean(na_vec, FALSE) # [1] NA
+myMean(na_vec, TRUE) # [1] 5.5
+```
+
+**The ellipsis is very useful and convenient, but do think carefully**
+
+## Debugging Functions
+
+- When we call a function it has it's own internal `environment`
+- This only exists while the function executes
+- To look inside a function, while it executes: `browser()`
+
+## Debugging Functions
+
+```{r, eval=FALSE}
+myMean <- function(x, na.rm = FALSE){
+  browser()
+  stopifnot(is.numeric(x))
+  if (na.rm) x <- x[!is.na(x)]
+  sum(x) / length(x)
+}
+```
+
+- Now when we execute `myMean()`:
+    + a new window will open
+    + we can step through each line to check it
+    + we can see the internal `environment` in the top right
+    
+## Debugging Functions
+
+```{r, eval=FALSE}
+myMean(int_vec)
+```
+
+## Function Design
+
+- Iteration in `R` is horrifyingly slow!!!
+- There are better ways
+- `apply()`, `lapply()`, `sapply()`, `vapply()`
+- Parallel versions:
+    + `parallel::mcapply()`
+    + `snow::clusterApply()`
+    
+## `lapply()`
+
+- The simplest of these to understand is `lapply()`
+- Applies a function to each element of a list,   
+    + i.e `l - apply`
+    
+```{r, eval = FALSE}
+lapply(X, FUN, ...)
+```
+
+- `X` is a vector (usually a `list`)
+- `FUN` is the function we wish to call
+- `...` allows for any other arguments to be set
+
+## `lapply()`
+    
+```{r}
+myList <- list(int_vec, dbl_vec)
+lapply(myList, myMean)
+```
+
+
+`lapply()` **has taken each element of** `X` **and placed it as the first argument of** `FUN`
+
+
+## `lapply()`
+    
+```{r}
+myList <- list(int_vec, dbl_vec, na_vec)
+lapply(myList, myMean)
+```
+
+## `lapply()`
+    
+```{r}
+myList <- list(int_vec, dbl_vec, na_vec)
+lapply(myList, myMean, na.rm = TRUE)
+```
+
+## Other variations
+
+- `sapply()` will attempt to simplify results as a vector
+- Handy in a script, but can be *unpredictable* in a function
+
+```{r}
+sapply(myList, myMean, na.rm = TRUE)
+```
+
+- `vapply()` is like `sapply()` but we tell it what each result should look like
+- *Much safer inside a function*
+
+```{r}
+vapply(myList, myMean, numeric(1), na.rm = TRUE)
+```
+
+## Key Point
+
+- The first argument of a function is important
+- This is where we should place an `argument` we wish to iterate over (using `lapply()` etc.) or commonly change
+
+## The `magrittr()`
+
+![A Famous Painting](magritte.jpeg)
+
+## The `magrittr()`
+
+```{r, warning=FALSE, message=FALSE}
+library(magrittr)
+```
+
+- The symbol `%>%` from the package `magrittr` behaves like a pipe (|) in bash
+
+```{r}
+int_vec %>% myMean()
+```
+
+- Like `lapply()` etc, it places the vector as the first argument of the function
+- We can chain multiple operations together
+
+## A pointless example
+
+```{r}
+list(int_vec, dbl_vec) %>%
+  sapply(mean) %>%
+  set_names(c("int", "dbl")) %>%
+  which.max()
+```
+
+Here, we:
+
+1. Combined two vectors as a list
+2. Found their means
+3. Set a `names()` attribute on the results
+4. Found which one had the highest mean
+
+## Aliases
+
+The package `magrittr` has numerous aliases for setting names, subsetting etc
+
+```{r, eval=FALSE}
+?extract
+```
+
